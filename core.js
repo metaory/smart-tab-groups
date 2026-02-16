@@ -17,26 +17,30 @@ const OPT_KEYS = [
 	'avoidDuplicates',
 ];
 
-const hashKey = (s) =>
-	s.split('').reduce((h, c) => ((h << 5) + h + c.codePointAt(0)) | 0, 5381);
-const colorForKey = (key) => COLORS[Math.abs(hashKey(key)) % COLORS.length];
 const colorByIndex = (i) => COLORS[i % COLORS.length];
 
-function getKey(url, groupBySubdomain) {
+const hostnameFromUrl = (url) => {
 	if (!url?.startsWith('http')) return null;
 	try {
-		const hostname = new URL(url).hostname;
-		if (!hostname) return null;
-		const raw = hostname.replace(/^www\./i, '');
-		if (groupBySubdomain) return raw;
-		const parts = raw.split('.');
-		if (parts.length <= 2) return raw;
-		const n = parts[parts.length - 1].length === 2 ? 3 : 2;
-		return parts.slice(-n).join('.');
+		const h = new URL(url).hostname;
+		return h || null;
 	} catch {
 		return null;
 	}
-}
+};
+const keyFromHostname = (hostname, groupBySubdomain) => {
+	if (!hostname) return null;
+	const raw = hostname.replace(/^www\./i, '');
+	if (groupBySubdomain) return raw;
+	const parts = raw.split('.');
+	if (parts.length <= 2) return raw;
+	const n = parts[parts.length - 1].length === 2 ? 3 : 2;
+	return parts.slice(-n).join('.');
+};
+const getKey = (url, groupBySubdomain) =>
+	keyFromHostname(hostnameFromUrl(url), groupBySubdomain);
+/** Display title: domain → first label (e.g. google), subdomain → first label (e.g. foo). */
+const getTitle = (key) => key?.split('.')[0] ?? key;
 
 const getOpts = () =>
 	new Promise((resolve) => {
@@ -55,17 +59,13 @@ const getWin = (id) =>
 				.then((w) => w?.id)
 				.catch(() => null);
 
-function buildByKey(tabs, opts) {
-	const include = (t) => !opts.ignorePinnedTabs || !t.pinned;
-	return tabs.filter(include).reduce((map, tab) => {
+const includeTab = (opts) => (t) => !opts.ignorePinnedTabs || !t.pinned;
+const buildByKey = (tabs, opts) =>
+	tabs.filter(includeTab(opts)).reduce((map, tab) => {
 		const key = getKey(tab.url, opts.groupBySubdomain);
 		if (key) map.set(key, [...(map.get(key) || []), tab.id]);
 		return map;
 	}, new Map());
-}
-
-const colorFor = (key, idx) =>
-	idx !== undefined ? colorByIndex(idx) : colorForKey(key);
 
 async function createGroup({ windowId, key, tabIds, idx }) {
 	const groupId = await chrome.tabs.group({
@@ -73,8 +73,8 @@ async function createGroup({ windowId, key, tabIds, idx }) {
 		createProperties: { windowId },
 	});
 	await chrome.tabGroups.update(groupId, {
-		title: key,
-		color: colorFor(key, idx),
+		title: getTitle(key),
+		color: colorByIndex(idx ?? 0),
 	});
 	return { groupId, title: key, key, idx };
 }
@@ -100,9 +100,18 @@ const collapseWithRetry = (groupId, index) =>
 		);
 	});
 
+const getFocusedTabId = (windowId, activeTabId) =>
+	activeTabId != null
+		? Promise.resolve(activeTabId)
+		: chrome.tabs.query({ windowId, active: true }).then((t) => t[0]?.id);
+
+const shouldCollapseGroup = (g, focusedTabId) =>
+	groupContainsTab(g.id, focusedTabId).then(
+		(focused) => !focused && !g.collapsed,
+	);
+
 async function collapseOneGroup(g, i, focusedTabId) {
-	const isFocused = await groupContainsTab(g.id, focusedTabId);
-	if (isFocused || g.collapsed) return;
+	if (!(await shouldCollapseGroup(g, focusedTabId))) return;
 	await collapseWithRetry(g.id, i);
 	await delay(40);
 }
@@ -110,8 +119,7 @@ async function collapseOneGroup(g, i, focusedTabId) {
 async function collapseInactiveInWindow(windowId, activeTabId = null) {
 	const opts = await getOpts();
 	if (!opts.collapseInactive) return;
-	const focusedTabId =
-		activeTabId ?? (await chrome.tabs.query({ windowId, active: true }))[0]?.id;
+	const focusedTabId = await getFocusedTabId(windowId, activeTabId);
 	if (!focusedTabId) return;
 	if (activeTabId) await delay(150);
 	const groups = await chrome.tabGroups.query({ windowId });
@@ -120,33 +128,66 @@ async function collapseInactiveInWindow(windowId, activeTabId = null) {
 
 async function applyTitleRefresh(groupId, key, idx) {
 	await chrome.tabGroups.update(groupId, {
-		title: key,
-		color: colorFor(key, idx),
+		title: getTitle(key),
+		color: colorByIndex(idx ?? 0),
 	});
 	await chrome.tabGroups.update(groupId, { collapsed: true });
 	await delay(30);
 	await chrome.tabGroups.update(groupId, { collapsed: false });
 }
 
-async function removeDuplicateTabsInWindow(windowId) {
-	const opts = await getOpts();
-	if (!opts.avoidDuplicates) return;
-	const tabs = await chrome.tabs.query({ windowId });
-	const active = (await chrome.tabs.query({ windowId, active: true }))[0]?.id;
-	const byUrl = tabs
+const groupTabIdsByUrl = (tabs) =>
+	tabs
 		.filter((t) => t.url?.startsWith('http'))
 		.reduce((acc, t) => {
 			acc[t.url] = [...(acc[t.url] || []), t.id];
 			return acc;
 		}, {});
-	const toRemove = Object.values(byUrl)
+
+const duplicateTabIdsToRemove = (byUrl, activeId) =>
+	Object.values(byUrl)
 		.filter((ids) => ids.length > 1)
 		.flatMap((ids) => {
-			const keep = ids.includes(active) ? active : ids[0];
+			const keep = ids.includes(activeId) ? activeId : ids[0];
 			return ids.filter((id) => id !== keep);
 		});
+
+async function removeDuplicateTabsInWindow(windowId) {
+	const opts = await getOpts();
+	if (!opts.avoidDuplicates) return;
+	const [tabs, activeTabs] = await Promise.all([
+		chrome.tabs.query({ windowId }),
+		chrome.tabs.query({ windowId, active: true }),
+	]);
+	const activeId = activeTabs[0]?.id;
+	const toRemove = duplicateTabIdsToRemove(groupTabIdsByUrl(tabs), activeId);
 	if (toRemove.length) await chrome.tabs.remove(toRemove);
 }
+
+const createGroupsForEntries = (win, entries) =>
+	Promise.all(
+		entries.map(([key, tabIds], idx) =>
+			chrome.tabs
+				.group({ tabIds, createProperties: { windowId: win } })
+				.then((groupId) => ({ groupId, title: key, key, idx })),
+		),
+	);
+
+const applyTitlesToGroups = (groupIds) =>
+	delay(300).then(() =>
+		Promise.all(
+			groupIds.map(({ groupId, key, idx }) =>
+				applyTitleRefresh(groupId, key, idx),
+			),
+		),
+	);
+
+const sortGroupsByTitle = (groupIds) => {
+	groupIds.sort((a, b) => a.title.localeCompare(b.title));
+	return Promise.all(
+		groupIds.map((g, i) => chrome.tabGroups.move(g.groupId, { index: i })),
+	);
+};
 
 async function groupAllTabs(windowId) {
 	const opts = await getOpts();
@@ -156,29 +197,11 @@ async function groupAllTabs(windowId) {
 	const tabs = await chrome.tabs.query({ windowId: win });
 	const toUngroup = tabs.filter(isGrouped).map((t) => t.id);
 	if (toUngroup.length) await chrome.tabs.ungroup(toUngroup);
-	const byKey = buildByKey(tabs, opts);
-	const entries = [...byKey.entries()];
-	const groupIds = [];
-	for (let idx = 0; idx < entries.length; idx++) {
-		const [key, tabIds] = entries[idx];
-		const groupId = await chrome.tabs.group({
-			tabIds,
-			createProperties: { windowId: win },
-		});
-		groupIds.push({ groupId, title: key, key, idx });
-	}
-	await delay(300);
-	await Promise.all(
-		groupIds.map(({ groupId, key, idx }) =>
-			applyTitleRefresh(groupId, key, idx),
-		),
-	);
-	if (opts.sortAlphabetically && groupIds.length) {
-		groupIds.sort((a, b) => a.title.localeCompare(b.title));
-		await Promise.all(
-			groupIds.map((g, i) => chrome.tabGroups.move(g.groupId, { index: i })),
-		);
-	}
+	const entries = [...buildByKey(tabs, opts).entries()];
+	const groupIds = await createGroupsForEntries(win, entries);
+	await applyTitlesToGroups(groupIds);
+	if (opts.sortAlphabetically && groupIds.length)
+		await sortGroupsByTitle(groupIds);
 	if (opts.collapseInactive && groupIds.length) {
 		await delay(100);
 		await collapseInactiveInWindow(win);
@@ -204,6 +227,29 @@ async function focusExistingAndCloseNew(windowId, newTabId, url) {
 	return true;
 }
 
+const buildGroupIdToKey = (tabs, opts) => {
+	const m = new Map();
+	for (const t of tabs.filter((t) => t.groupId != null))
+		if (!m.has(t.groupId))
+			m.set(t.groupId, getKey(t.url, opts.groupBySubdomain));
+	return m;
+};
+const findGroupForKey = (groups, groupIdToKey, key) =>
+	groups.find((g) => groupIdToKey.get(g.id) === key);
+
+const addTabToExistingGroup = (groupId, tabId) =>
+	chrome.tabs
+		.query({ groupId })
+		.catch(() => [])
+		.then((inGroup) =>
+			chrome.tabs.group({
+				groupId,
+				tabIds: [...inGroup.map((t) => t.id), tabId],
+			}),
+		)
+		.then(() => true)
+		.catch(() => false);
+
 async function assignTabToGroup(tabId, url, windowId) {
 	const opts = await getOpts();
 	const tab = await chrome.tabs.get(tabId).catch(() => null);
@@ -211,19 +257,16 @@ async function assignTabToGroup(tabId, url, windowId) {
 	const key = getKey(url, opts.groupBySubdomain);
 	if (!key) return;
 	const winId = tab.windowId ?? windowId;
-	const groups = await chrome.tabGroups.query({ windowId: winId });
-	const existing = groups.find((g) => g.title === key);
-	if (existing) {
-		const inGroup = await chrome.tabs
-			.query({ groupId: existing.id })
-			.catch(() => []);
-		await chrome.tabs
-			.group({
-				groupId: existing.id,
-				tabIds: [...inGroup.map((t) => t.id), tabId],
-			})
-			.catch(() => createGroup({ windowId: winId, key, tabIds: [tabId] }));
-		return;
+	const [groups, tabs] = await Promise.all([
+		chrome.tabGroups.query({ windowId: winId }),
+		chrome.tabs.query({ windowId: winId }),
+	]);
+	const groupIdToKey = buildGroupIdToKey(tabs, opts);
+	const existing = findGroupForKey(groups, groupIdToKey, key);
+	const added = existing && (await addTabToExistingGroup(existing.id, tabId));
+	if (!added) {
+		const allKeys = [...new Set([...groupIdToKey.values(), key])].sort();
+		const idx = allKeys.indexOf(key);
+		await createGroup({ windowId: winId, key, tabIds: [tabId], idx });
 	}
-	await createGroup({ windowId: winId, key, tabIds: [tabId] });
 }
