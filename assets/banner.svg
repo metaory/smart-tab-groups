@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 320" width="640" height="320">
+  <defs>
+    <filter id="glow-banner" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur"/>
+      <feFlood flood-color="#00cd66" flood-opacity="1"/>
+      <feComposite in2="blur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="640" height="320" rx="24" fill="#0f0f14"/>
+  <g transform="translate(48,80) scale(2.5)">
+    <rect width="64" height="64" rx="12" fill="#0f0f14"/>
+    <rect x="14" y="14" width="36" height="36" rx="8" fill="#00cd66" transform="rotate(22 32 32)" filter="url(#glow-banner)"/>
+  </g>
+  <text x="240" y="140" font-family="system-ui, sans-serif" font-size="32" font-weight="700" fill="#fff">Smart Auto Tab Group</text>
+  <text x="240" y="172" font-family="system-ui, sans-serif" font-size="16" fill="#888">Auto-group tabs by domain &#183; new tabs auto-join</text>
+</svg>
