@@ -1,213 +1,170 @@
 @font-face {
-	font-family: 'Bungee';
-	font-style: normal;
-	font-weight: 400;
-	font-display: swap;
-	src: url('assets/fonts/bungee-latin-400-normal.woff2') format('woff2');
+  font-family: "Bungee";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("assets/fonts/bungee-latin-400-normal.woff2") format("woff2");
 }
 @font-face {
-	font-family: 'Baloo 2';
-	font-style: normal;
-	font-weight: 400;
-	font-display: swap;
-	src: url('assets/fonts/baloo-2-latin-400-normal.woff2') format('woff2');
+  font-family: "Baloo 2";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("assets/fonts/baloo-2-latin-400-normal.woff2") format("woff2");
 }
 @font-face {
-	font-family: 'Baloo 2';
-	font-style: normal;
-	font-weight: 600;
-	font-display: swap;
-	src: url('assets/fonts/baloo-2-latin-600-normal.woff2') format('woff2');
-}
-@keyframes gradient-shift {
-	0%, 100% { background-position: 0% 50%; }
-	50% { background-position: 100% 50%; }
+  font-family: "Baloo 2";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/fonts/baloo-2-latin-600-normal.woff2") format("woff2");
 }
 body.popup-page {
-	--fg: #e8e8f4;
-	--accent: #ff6b9d;
-	--accent-dim: #c44d7a;
-	--accent-rgb: 255, 107, 157;
-	--accent-dim-rgb: 196, 77, 122;
-	--bg: #1a1a2e;
-	--bg-from: #0f0f1a;
-	--bg-to: #16213e;
-	--glass: rgba(255, 255, 255, 0.06);
-	--glass-mid: rgba(255, 255, 255, 0.12);
-	--glass-weak: rgba(255, 255, 255, 0.04);
-	--panel-from: rgba(37, 37, 74, 0.5);
-	--panel-via: rgba(30, 30, 63, 0.45);
-	--panel-to: rgba(26, 26, 53, 0.5);
-	--shadow: rgba(0, 0, 0, 0.25);
-	--glow: rgba(var(--accent-rgb), 0.5);
-	margin: 0;
-	font: 600 14px 'Baloo 2', system-ui, sans-serif;
-	background: linear-gradient(160deg, var(--bg-from) 0%, var(--bg) 50%, var(--bg-to) 100%);
-	color: var(--fg);
+  --fg: #ffffff;
+  --fg-muted: #a0a0a0;
+  --accent: #00cd66;
+  --accent-dim: #00a852;
+  --accent-rgb: 0, 205, 102;
+  --accent-dim-rgb: 0, 168, 82;
+  --accent-muted: #009044;
+  --accent-soft: #009044;
+  --bg: #191919;
+  --panel: #212121;
+  --surface: #2d2d2d;
+  --glass: rgba(255, 255, 255, 0.05);
+  --glass-mid: rgba(255, 255, 255, 0.08);
+  --shadow: rgba(0, 0, 0, 0.35);
+  margin: 0;
+  height: 100vh;
+  margin-top: 20%;
+  font:
+    600 14px "Baloo 2",
+    system-ui,
+    sans-serif;
+  background: var(--bg);
+  color: var(--fg);
 }
 .popup {
-	padding: 18px;
-	min-width: 220px;
-	max-width: 220px;
-	place-self: center;
-	border-radius: 24px;
-	background: linear-gradient(145deg, var(--panel-from) 0%, var(--panel-via) 40%, var(--panel-to) 100%);
-	background-size: 400% 400%;
-	animation: gradient-shift 12s ease infinite;
-	backdrop-filter: blur(20px);
-	-webkit-backdrop-filter: blur(20px);
-	border: 1px solid var(--glass-mid);
-	box-shadow: 0 0 60px var(--glow), 0 0 100px rgba(var(--accent-rgb), 0.08), 0 25px 50px var(--shadow), inset 0 1px 0 var(--glass);
+  padding: 16px;
+  min-width: 220px;
+  max-width: 220px;
+  place-self: center;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--glass-mid);
+  box-shadow:
+    0 4px 24px var(--shadow),
+    inset 0 1px 0 var(--glass);
 }
 .popup .option {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	margin-bottom: 10px;
-	padding: 8px 12px;
-	cursor: pointer;
-	border-radius: 14px;
-	border: 1px solid var(--glass);
-	background: var(--glass-weak);
-	backdrop-filter: blur(8px);
-	-webkit-backdrop-filter: blur(8px);
-	transition: 0.25s background, 0.25s box-shadow, 0.25s border-color;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 10px;
+  border: none;
+  background: var(--surface);
+  transition:
+    0.2s background,
+    0.2s box-shadow;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 .popup .option:hover {
-	background: rgba(var(--accent-rgb), 0.15);
-	border-color: rgba(var(--accent-rgb), 0.3);
-	box-shadow: 0 0 28px var(--glow), inset 0 0 32px rgba(var(--accent-rgb), 0.18), inset 0 0 60px rgba(var(--accent-rgb), 0.08);
+  background: #353535;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
 }
-.popup .option label {
-	flex: 1;
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	cursor: pointer;
+.popup .option .toggle {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
-.popup .short {
-	flex: 1;
+.popup .option .short {
+  flex: 1;
+  color: var(--fg-muted);
 }
-.popup .switch {
-	display: flex;
-	align-items: center;
-	flex-shrink: 0;
+.popup .option:hover .short {
+  color: var(--fg);
 }
-.popup .switch input[type="checkbox"] {
-	appearance: none;
-	width: 48px;
-	height: 27px;
-	border: 2px solid var(--glass-mid);
-	border-radius: 20px;
-	background: var(--glass);
-	backdrop-filter: blur(6px);
-	-webkit-backdrop-filter: blur(6px);
-	position: relative;
-	box-sizing: border-box;
-	cursor: pointer;
-	transition: 0.3s border-color, 0.3s background, 0.3s box-shadow;
+.popup .option:has(.toggle:checked) {
+  background: linear-gradient(
+    180deg,
+    rgba(var(--accent-rgb), 0.25) 0%,
+    rgba(var(--accent-rgb), 0.12) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 0 1px rgba(var(--accent-rgb), 0.35);
 }
-.popup .switch input[type="checkbox"]:hover {
-	box-shadow: inset 0 0 24px rgba(var(--accent-rgb), 0.12), inset 0 0 48px rgba(var(--accent-rgb), 0.06);
+.popup .option:has(.toggle:checked) .short {
+  color: var(--fg);
 }
-.popup .option:hover .switch input[type="checkbox"] {
-	box-shadow: inset 0 0 24px rgba(var(--accent-rgb), 0.14), inset 0 0 48px rgba(var(--accent-rgb), 0.08);
-}
-.popup .switch input[type="checkbox"]::before {
-	content: "";
-	width: 14px;
-	height: 14px;
-	background: rgba(var(--accent-rgb), 0.5);
-	border: 2px solid var(--accent);
-	border-radius: 50%;
-	position: absolute;
-	top: 0;
-	left: 0;
-	transform: translate(13%, 15%);
-	transition: all 0.3s ease-in-out;
-	box-shadow: 0 0 12px var(--glow);
-}
-.popup .switch input[type="checkbox"]::after {
-	content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='23' height='23' viewBox='0 0 23 23' fill='none'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M6.55021 5.84315L17.1568 16.4498L16.4497 17.1569L5.84311 6.55026L6.55021 5.84315Z' fill='%23e8e8f4' fill-opacity='0.89'/%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M17.1567 6.55021L6.55012 17.1568L5.84302 16.4497L16.4496 5.84311L17.1567 6.55021Z' fill='%23e8e8f4' fill-opacity='0.89'/%3E%3C/svg%3E");
-	position: absolute;
-	top: 0;
-	left: 20px;
-	opacity: 0.9;
-}
-.popup .switch input[type="checkbox"]:checked {
-	border-color: var(--accent);
-	background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.35) 0%, rgba(var(--accent-dim-rgb), 0.25) 100%);
-	box-shadow: 0 0 20px var(--glow), inset 0 0 28px rgba(var(--accent-rgb), 0.25), inset 0 0 50px rgba(var(--accent-rgb), 0.12);
-}
-.popup .switch input[type="checkbox"]:checked:hover,
-.popup .option:hover .switch input[type="checkbox"]:checked {
-	box-shadow: 0 0 24px var(--glow), inset 0 0 36px rgba(var(--accent-rgb), 0.35), inset 0 0 64px rgba(var(--accent-rgb), 0.15);
-}
-.popup .switch input[type="checkbox"]:checked::before {
-	background: rgba(255, 255, 255, 0.95);
-	border-color: var(--accent);
-	transform: translate(133%, 13%);
-	transition: all 0.3s ease-in-out;
-	box-shadow: 0 0 16px var(--glow), 0 0 8px rgba(var(--accent-rgb), 0.6);
-}
-.popup .switch input[type="checkbox"]:checked::after {
-	content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='13' viewBox='0 0 15 13' fill='none'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M14.8185 0.114533C15.0314 0.290403 15.0614 0.605559 14.8855 0.818454L5.00187 12.5L0.113036 6.81663C-0.0618274 6.60291 -0.0303263 6.2879 0.183396 6.11304C0.397119 5.93817 0.71213 5.96967 0.886994 6.18339L5.00187 11L14.1145 0.181573C14.2904 -0.0313222 14.6056 -0.0613371 14.8185 0.114533Z' fill='%23ff6b9d' fill-opacity='0.95'/%3E%3C/svg%3E");
-	position: absolute;
-	top: 5px;
-	left: 5px;
-	opacity: 1;
+.popup .option:has(.toggle:checked):hover {
+  background: linear-gradient(
+    180deg,
+    rgba(var(--accent-rgb), 0.3) 0%,
+    rgba(var(--accent-rgb), 0.16) 100%
+  );
 }
 #groupNow,
 #ungroupAll {
-	display: block;
-	position: relative;
-	width: 100%;
-	margin-top: 12px;
-	box-sizing: border-box;
-	border: 1px solid rgba(var(--accent-rgb), 0.45);
-	background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.35) 0%, rgba(var(--accent-dim-rgb), 0.28) 100%);
-	backdrop-filter: blur(12px);
-	-webkit-backdrop-filter: blur(12px);
-	color: var(--fg);
-	padding: 1em 1.25em;
-	font: 600 14px 'Baloo 2', system-ui, sans-serif;
-	border-radius: 16px;
-	opacity: 0.98;
-	letter-spacing: 0.5px;
-	transform: translateY(0);
-	box-shadow: 0 0 30px var(--glow), 0 0 60px rgba(var(--accent-rgb), 0.15), 0 8px 24px var(--shadow), inset 0 1px 0 var(--glass-mid);
-	cursor: pointer;
-	transition: 0.25s transform, 0.25s box-shadow, 0.25s opacity;
+  display: block;
+  position: relative;
+  width: 100%;
+  margin-top: 10px;
+  box-sizing: border-box;
+  border: none;
+  background: var(--surface);
+  color: var(--fg);
+  padding: 12px 1.25em;
+  font:
+    600 14px "Baloo 2",
+    system-ui,
+    sans-serif;
+  border-radius: 10px;
+  transform: translateY(0);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition:
+    0.2s background,
+    0.2s box-shadow;
 }
 #groupNow:hover,
 #ungroupAll:hover {
-	opacity: 1;
-	transform: translateY(-2px);
-	background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.45) 0%, rgba(var(--accent-dim-rgb), 0.35) 100%);
-	box-shadow: 0 0 40px var(--glow), 0 0 80px rgba(var(--accent-rgb), 0.25), 0 12px 28px var(--shadow), inset 0 1px 0 var(--glass-mid);
+  background: #353535;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 #groupNow:active,
 #ungroupAll:active {
-	top: 2px;
-	transform: translateY(0);
-	box-shadow: 0 0 20px var(--glow), 0 4px 12px var(--shadow), inset 0 0 20px rgba(var(--accent-rgb), 0.1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 #groupNow:focus:not(:focus-visible),
 #ungroupAll:focus:not(:focus-visible) {
-	outline: none;
+  outline: none;
 }
 #shortcutsLink {
-	display: block;
-	margin-top: 12px;
-	padding: 8px 0;
-	font: 600 12px 'Baloo 2', system-ui, sans-serif;
-	color: var(--accent);
-	text-decoration: none;
-	border-radius: 8px;
-	transition: 0.25s color, 0.25s text-shadow, 0.25s background;
+  display: block;
+  margin-top: 10px;
+  padding: 6px 0;
+  font:
+    600 12px "Baloo 2",
+    system-ui,
+    sans-serif;
+  color: var(--accent-muted);
+  text-decoration: none;
+  border-radius: 8px;
+  transition:
+    0.2s color,
+    0.2s background;
 }
 #shortcutsLink:hover {
-	color: var(--fg);
-	text-shadow: 0 0 20px var(--glow), 0 0 40px rgba(var(--accent-rgb), 0.4);
-	background: rgba(var(--accent-rgb), 0.08);
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.06);
 }

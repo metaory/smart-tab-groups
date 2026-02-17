@@ -13,16 +13,10 @@ const BUTTONS = [
 
 const container = document.getElementById('options');
 OPTIONS.forEach(({ id, short: shortLabel }) => {
-	const row = document.createElement('div');
+	const row = document.createElement('label');
 	row.className = 'option';
-	const lab = document.createElement('label');
-	const switchWrap = document.createElement('span');
-	switchWrap.className = 'switch';
-	switchWrap.append(
-		Object.assign(document.createElement('input'), { type: 'checkbox', id, className: 'toggle' }),
-	);
-	lab.append(switchWrap, Object.assign(document.createElement('span'), { className: 'short', textContent: shortLabel }));
-	row.append(lab);
+	const input = Object.assign(document.createElement('input'), { type: 'checkbox', id, className: 'toggle' });
+	row.append(input, Object.assign(document.createElement('span'), { className: 'short', textContent: shortLabel }));
 	container.appendChild(row);
 });
 
