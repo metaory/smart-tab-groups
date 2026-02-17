@@ -20,9 +20,7 @@ OPTIONS.forEach(({ id, short: shortLabel }) => {
 	switchWrap.className = 'switch';
 	switchWrap.append(
 		Object.assign(document.createElement('input'), { type: 'checkbox', id, className: 'toggle' }),
-		document.createElement('span'),
 	);
-	switchWrap.lastElementChild.className = 'slider';
 	lab.append(switchWrap, Object.assign(document.createElement('span'), { className: 'short', textContent: shortLabel }));
 	row.append(lab);
 	container.appendChild(row);
