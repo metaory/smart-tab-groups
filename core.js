@@ -21,6 +21,15 @@ const OPT_DEFAULTS = { automatic: true };
 
 const colorByIndex = (i) => COLORS[i % COLORS.length];
 
+const RESTRICTED_HOSTS = /^(chrome\.google\.com|chromewebstore\.google\.com)$/;
+const isRestrictedUrl = (url) => {
+	if (!url?.startsWith('http')) return true;
+	try {
+		return RESTRICTED_HOSTS.test(new URL(url).hostname.replace(/^www\./i, ''));
+	} catch {
+		return true;
+	}
+};
 const hostnameFromUrl = (url) => {
 	if (!url?.startsWith('http')) return null;
 	try {
@@ -40,7 +49,7 @@ const keyFromHostname = (hostname, groupBySubdomain) => {
 	return parts.slice(-n).join('.');
 };
 const getKey = (url, groupBySubdomain) =>
-	keyFromHostname(hostnameFromUrl(url), groupBySubdomain);
+	isRestrictedUrl(url) ? null : keyFromHostname(hostnameFromUrl(url), groupBySubdomain);
 /** Display title: domain → first label (e.g. google), subdomain → first label (e.g. foo). */
 const getTitle = (key) => key?.split('.')[0] ?? key;
 
@@ -89,11 +98,15 @@ const groupContainsTab = (groupId, tabId) =>
 		.query({ groupId })
 		.then((tabs) => tabs.some((t) => t.id === tabId));
 
+const MOVE_IN_GROUP_ERR = 'index that is in the middle of another group';
 const collapseGroupWithMove = (groupId, index) =>
 	chrome.tabGroups
 		.update(groupId, { collapsed: true })
 		.then(() => chrome.tabGroups.move(groupId, { index: -1 }))
-		.then(() => chrome.tabGroups.move(groupId, { index }));
+		.then(() => chrome.tabGroups.move(groupId, { index }))
+		.catch((err) => {
+			if (!String(err?.message ?? err).includes(MOVE_IN_GROUP_ERR)) throw err;
+		});
 
 const TAB_EDIT_BLOCKED = 'Tabs cannot be edited right now';
 
@@ -190,7 +203,11 @@ const applyTitlesToGroups = (groupIds) =>
 const sortGroupsByTitle = (groupIds) => {
 	groupIds.sort((a, b) => a.title.localeCompare(b.title));
 	return Promise.all(
-		groupIds.map((g, i) => chrome.tabGroups.move(g.groupId, { index: i })),
+		groupIds.map((g, i) =>
+			chrome.tabGroups.move(g.groupId, { index: i }).catch((err) => {
+				if (!String(err?.message ?? err).includes(MOVE_IN_GROUP_ERR)) throw err;
+			}),
+		),
 	);
 };
 
