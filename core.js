@@ -21,7 +21,7 @@ const OPT_DEFAULTS = { automatic: true };
 
 const colorByIndex = (i) => COLORS[i % COLORS.length];
 
-const RESTRICTED_HOSTS = /^(chrome\.google\.com|chromewebstore\.google\.com)$/;
+const RESTRICTED_HOSTS = /^(chrome\.google\.com|chromewebstore\.google\.com|addons\.mozilla\.org|addons\.allizom\.org)$/;
 const isRestrictedUrl = (url) => {
 	if (!url?.startsWith('http')) return true;
 	try {

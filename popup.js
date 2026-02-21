@@ -101,7 +101,10 @@ for (const [id, action] of BUTTONS) {
   el?.addEventListener("click", (e) => {
     if (id === "shortcuts") {
       e.preventDefault();
-      if (ext) chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+      if (ext) {
+        const shortcutsUrl = /Firefox/.test(navigator.userAgent) ? "about:addons" : "chrome://extensions/shortcuts";
+        chrome.tabs.create({ url: shortcutsUrl });
+      }
       return;
     }
     if (ext) chrome.runtime.sendMessage({ action });

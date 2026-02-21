@@ -37,5 +37,11 @@
 			},
 			"description": "Ungroup all"
 		}
+	},
+	"browser_specific_settings": {
+		"gecko": {
+			"id": "smart-tab-groups@smart-tab-groups",
+			"strict_min_version": "138.0"
+		}
 	}
 }
