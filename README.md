@@ -30,6 +30,10 @@ Grouping by domain or subdomain; new tabs auto-join (when Automatic is on).
 - **Collapse inactive** (collapse groups without active tab)
 - **No duplicates** (remove duplicate tabs)
 
+> [!TIP]
+> **Manual groups** you create in the browser are left **untouched**;
+> only groups created by the extension are managed.
+
 ---
 
 ## Install
@@ -54,7 +58,7 @@ Run `npx vite` to serve the UI for development and debugging (hot reload).
 | Automatic | on | When on: new/updated tabs are grouped, install/startup runs Group now, inactive groups collapse. When off: use **Group now** (button or shortcut) to group manually. |
 | Group by subdomain | off | Use full subdomain (e.g. `mail.google.com`) as group key instead of base domain. |
 | Sort groups alphabetically | off | Order groups A–Z. |
-| Ignore pinned tabs | off | Do not put pinned tabs into groups. |
+| Skip pinned | off | Do not put pinned tabs into groups. |
 | Collapse inactive groups | off | Collapse groups that don’t contain the active tab. |
 | Avoid duplicates | off | New tab with same URL as existing tab in window → focus existing, close new. **Group now** also removes duplicate tabs (keeps one per URL). |
 

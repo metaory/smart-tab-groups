@@ -1,14 +1,3 @@
-const COLORS = [
-	'grey',
-	'blue',
-	'red',
-	'yellow',
-	'green',
-	'pink',
-	'purple',
-	'cyan',
-	'orange',
-];
 const OPT_KEYS = [
 	'automatic',
 	'groupBySubdomain',
@@ -18,8 +7,31 @@ const OPT_KEYS = [
 	'avoidDuplicates',
 ];
 const OPT_DEFAULTS = { automatic: true };
+const AUTO_CREATED_GROUP_IDS_KEY = 'autoCreatedGroupIds';
 
-const colorByIndex = (i) => COLORS[i % COLORS.length];
+const getStoredAutoCreatedGroupIds = () =>
+	new Promise((r) =>
+		chrome.storage.sync.get(AUTO_CREATED_GROUP_IDS_KEY, (o) =>
+			r(Array.isArray(o.autoCreatedGroupIds) ? o.autoCreatedGroupIds : []),
+		),
+	);
+const addToAutoCreatedGroupIds = (ids) =>
+	getStoredAutoCreatedGroupIds().then((arr) => {
+		const next = [...new Set([...arr, ...ids])];
+		return new Promise((r) => chrome.storage.sync.set({ [AUTO_CREATED_GROUP_IDS_KEY]: next }, r));
+	});
+
+/** Set of group IDs we should ignore: groups we did not create (manually created). */
+const getManualGroupIds = () =>
+	Promise.all([getStoredAutoCreatedGroupIds(), chrome.tabGroups.query({})]).then(
+		([storedAuto, allGroups]) => {
+			const currentIds = new Set(allGroups.map((g) => g.id));
+			const autoCreated = new Set(
+				storedAuto.map(Number).filter((id) => id > 0 && currentIds.has(id)),
+			);
+			return new Set([...currentIds].filter((id) => !autoCreated.has(id)));
+		},
+	);
 
 const RESTRICTED_HOSTS = /^(chrome\.google\.com|chromewebstore\.google\.com|addons\.mozilla\.org|addons\.allizom\.org)$/;
 const isRestrictedUrl = (url) => {
@@ -86,10 +98,7 @@ async function createGroup({ windowId, key, tabIds, idx }) {
 		tabIds,
 		createProperties: { windowId },
 	});
-	await chrome.tabGroups.update(groupId, {
-		title: getTitle(key),
-		color: colorByIndex(idx ?? 0),
-	});
+	await chrome.tabGroups.update(groupId, { title: getTitle(key) });
 	return { groupId, title: key, key, idx };
 }
 
@@ -140,19 +149,16 @@ async function collapseInactiveInWindow(windowId, activeTabId = null) {
 	const focusedTabId = await getFocusedTabId(windowId, activeTabId);
 	if (!focusedTabId) return;
 	if (activeTabId) await delay(150);
-	const groups = await chrome.tabGroups.query({ windowId });
-	await Promise.all(groups.map((g, i) => collapseOneGroup(g, i, focusedTabId)));
+	const [groups, manualSet] = await Promise.all([
+		chrome.tabGroups.query({ windowId }),
+		getManualGroupIds(),
+	]);
+	const toCollapse = groups.filter((g) => !manualSet.has(g.id));
+	await Promise.all(toCollapse.map((g, i) => collapseOneGroup(g, i, focusedTabId)));
 }
 
-async function applyTitleRefresh(groupId, key, idx) {
-	await chrome.tabGroups.update(groupId, {
-		title: getTitle(key),
-		color: colorByIndex(idx ?? 0),
-	});
-	await chrome.tabGroups.update(groupId, { collapsed: true });
-	await delay(30);
-	await chrome.tabGroups.update(groupId, { collapsed: false });
-}
+const applyTitleRefresh = (groupId, key) =>
+	chrome.tabGroups.update(groupId, { title: getTitle(key) });
 
 const groupTabIdsByUrl = (tabs) =>
 	tabs
@@ -162,23 +168,27 @@ const groupTabIdsByUrl = (tabs) =>
 			return acc;
 		}, {});
 
-const duplicateTabIdsToRemove = (byUrl, activeId) =>
+const duplicateTabIdsToRemove = (byUrl, activeId, excludeTabIds) =>
 	Object.values(byUrl)
 		.filter((ids) => ids.length > 1)
 		.flatMap((ids) => {
 			const keep = ids.includes(activeId) ? activeId : ids[0];
-			return ids.filter((id) => id !== keep);
+			return ids.filter((id) => id !== keep && !excludeTabIds.has(id));
 		});
 
 async function removeDuplicateTabsInWindow(windowId) {
 	const opts = await getOpts();
 	if (!opts.avoidDuplicates) return;
-	const [tabs, activeTabs] = await Promise.all([
+	const [tabs, activeTabs, manualSet] = await Promise.all([
 		chrome.tabs.query({ windowId }),
 		chrome.tabs.query({ windowId, active: true }),
+		getManualGroupIds(),
 	]);
 	const activeId = activeTabs[0]?.id;
-	const toRemove = duplicateTabIdsToRemove(groupTabIdsByUrl(tabs), activeId);
+	const inManualGroup = new Set(
+		tabs.filter((t) => t.groupId != null && manualSet.has(t.groupId)).map((t) => t.id),
+	);
+	const toRemove = duplicateTabIdsToRemove(groupTabIdsByUrl(tabs), activeId, inManualGroup);
 	if (toRemove.length) await chrome.tabs.remove(toRemove);
 }
 
@@ -193,11 +203,7 @@ const createGroupsForEntries = (win, entries) =>
 
 const applyTitlesToGroups = (groupIds) =>
 	delay(300).then(() =>
-		Promise.all(
-			groupIds.map(({ groupId, key, idx }) =>
-				applyTitleRefresh(groupId, key, idx),
-			),
-		),
+		Promise.all(groupIds.map(({ groupId, key }) => applyTitleRefresh(groupId, key))),
 	);
 
 const sortGroupsByTitle = (groupIds) => {
@@ -216,11 +222,17 @@ async function groupAllTabs(windowId) {
 	const win = await getWin(windowId);
 	if (!win) return;
 	await removeDuplicateTabsInWindow(win);
-	const tabs = await chrome.tabs.query({ windowId: win });
-	const toUngroup = tabs.filter(isGrouped).map((t) => t.id);
+	const [tabs, manualSet] = await Promise.all([
+		chrome.tabs.query({ windowId: win }),
+		getManualGroupIds(),
+	]);
+	const notManual = (t) => t.groupId == null || t.groupId === -1 || !manualSet.has(t.groupId);
+	const toRegroup = tabs.filter(notManual);
+	const toUngroup = toRegroup.filter(isGrouped).map((t) => t.id);
 	if (toUngroup.length) await chrome.tabs.ungroup(toUngroup);
-	const entries = [...buildByKey(tabs, opts).entries()];
+	const entries = [...buildByKey(toRegroup, opts).entries()];
 	const groupIds = await createGroupsForEntries(win, entries);
+	await addToAutoCreatedGroupIds(groupIds.map((g) => g.groupId));
 	await applyTitlesToGroups(groupIds);
 	if (opts.sortAlphabetically && groupIds.length)
 		await sortGroupsByTitle(groupIds);
@@ -233,8 +245,11 @@ async function groupAllTabs(windowId) {
 async function ungroupAllTabs(windowId) {
 	const win = await getWin(windowId);
 	if (!win) return;
-	const tabs = await chrome.tabs.query({ windowId: win });
-	const ids = tabs.filter(isGrouped).map((t) => t.id);
+	const [tabs, manualSet] = await Promise.all([
+		chrome.tabs.query({ windowId: win }),
+		getManualGroupIds(),
+	]);
+	const ids = tabs.filter((t) => isGrouped(t) && !manualSet.has(t.groupId)).map((t) => t.id);
 	if (ids.length) await chrome.tabs.ungroup(ids);
 }
 
@@ -249,9 +264,9 @@ async function focusExistingAndCloseNew(windowId, newTabId, url) {
 	return true;
 }
 
-const buildGroupIdToKey = (tabs, opts) => {
+const buildGroupIdToKey = (tabs, opts, excludeGroupIds) => {
 	const m = new Map();
-	for (const t of tabs.filter((t) => t.groupId != null))
+	for (const t of tabs.filter((t) => t.groupId != null && !excludeGroupIds.has(t.groupId)))
 		if (!m.has(t.groupId))
 			m.set(t.groupId, getKey(t.url, opts.groupBySubdomain));
 	return m;
@@ -279,16 +294,20 @@ async function assignTabToGroup(tabId, url, windowId) {
 	const key = getKey(url, opts.groupBySubdomain);
 	if (!key) return;
 	const winId = tab.windowId ?? windowId;
-	const [groups, tabs] = await Promise.all([
+	const [groups, tabs, manualSet] = await Promise.all([
 		chrome.tabGroups.query({ windowId: winId }),
 		chrome.tabs.query({ windowId: winId }),
+		getManualGroupIds(),
 	]);
-	const groupIdToKey = buildGroupIdToKey(tabs, opts);
-	const existing = findGroupForKey(groups, groupIdToKey, key);
+	if (tab.groupId != null && manualSet.has(tab.groupId)) return;
+	const managedGroups = groups.filter((g) => !manualSet.has(g.id));
+	const groupIdToKey = buildGroupIdToKey(tabs, opts, manualSet);
+	const existing = findGroupForKey(managedGroups, groupIdToKey, key);
 	const added = existing && (await addTabToExistingGroup(existing.id, tabId));
 	if (!added) {
 		const allKeys = [...new Set([...groupIdToKey.values(), key])].sort();
 		const idx = allKeys.indexOf(key);
-		await createGroup({ windowId: winId, key, tabIds: [tabId], idx });
+		const { groupId } = await createGroup({ windowId: winId, key, tabIds: [tabId], idx });
+		await addToAutoCreatedGroupIds([groupId]);
 	}
 }

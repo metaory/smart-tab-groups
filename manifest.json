@@ -2,7 +2,7 @@
 	"manifest_version": 3,
 	"name": "Smart Tab Groups",
 	"version": "1.0.0",
-	"description": "Tab grouping by domain or subdomain; new tabs auto-join. Toggle automatic on/off. Sort A–Z, ignore pinned, collapse inactive, dedupe by URL.",
+	"description": "Tab grouping by domain or subdomain; new tabs auto-join. Toggle automatic on/off. Sort A–Z, skip pinned, collapse inactive, dedupe by URL.",
 	"permissions": ["tabs", "tabGroups", "storage", "management"],
 	"icons": {
 		"16": "assets/icons/icon-16.png",
