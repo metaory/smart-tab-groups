@@ -1,7 +1,7 @@
 {
 	"manifest_version": 3,
 	"name": "Smart Tab Groups",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "Tab grouping by domain or subdomain; new tabs auto-join. Toggle automatic on/off. Sort A–Z, skip pinned, collapse inactive, dedupe by URL.",
 	"permissions": ["tabs", "tabGroups", "storage", "management"],
 	"icons": {
