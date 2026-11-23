@@ -72,7 +72,7 @@ const injectAllIcons = () => {
 };
 
 const OPTION_IDS = OPTIONS.map(([iconFile]) => toId(iconFile));
-const DEFAULTS = { automatic: true };
+const DEFAULTS = { automatic: true, ignorePinnedTabs: true };
 
 if (ext && chrome.storage.sync) {
   chrome.storage.sync.get(OPTION_IDS, (opts) => {

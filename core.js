@@ -6,7 +6,7 @@ const OPT_KEYS = [
 	'collapseInactive',
 	'avoidDuplicates',
 ];
-const OPT_DEFAULTS = { automatic: true };
+const OPT_DEFAULTS = { automatic: true, ignorePinnedTabs: true };
 const AUTO_CREATED_GROUP_IDS_KEY = 'autoCreatedGroupIds';
 
 const getStoredAutoCreatedGroupIds = () =>
